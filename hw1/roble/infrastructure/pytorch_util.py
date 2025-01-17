@@ -14,6 +14,9 @@ _str_to_activation = {
     'softplus': nn.Softplus(),
     'identity': nn.Identity(),
 }
+class MLP(nn.Module):
+    def __init__(self, input_size, output_size, n_layers, size, activation, output_activation):
+        super(MLP, self).__init__()
     
 def build_mlp(
         input_size: int,
@@ -41,9 +44,10 @@ def build_mlp(
 
     if isinstance(params["output_activation"], str):
         output_activation = _str_to_activation[params["output_activation"]]
-    # TODO: return a MLP. This should be an instance of nn.Module
-    # Note: nn.Sequential is an instance of nn.Module.
-    raise NotImplementedError
+    if isinstance(params["activation"], str):
+        activation = _str_to_activation[params["activation"]]
+    
+    return MLP(input_size, output_size, params["n_layers"], params["size"], activation, output_activation)
 
 device = None
 

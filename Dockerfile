@@ -71,18 +71,18 @@ RUN python -c "import gym; env = gym.make('Ant-v2'); print(env)"
 # e.g.
 ADD conf conf
 ADD hw1 hw1
-ADD hw2 hw2
-ADD hw3 hw3
-ADD hw4 hw4
-ADD hw5 hw5
-ADD hw6 hw6
-ADD tools tools
+#ADD hw2 hw2
+#ADD hw3 hw3
+#ADD hw4 hw4
+#ADD hw5 hw5
+#ADD hw6 hw6
+#ADD tools tools
 COPY run_hw1_bc.py run_hw1_bc.py
-COPY run_hw2_mb.py run_hw2_mb.py
-COPY run_hw3_ql.py run_hw3_ql.py
-COPY run_hw4_gc.py run_hw4_gc.py
-COPY run_hw5_expl.py run_hw5_expl.py
-COPY run_hw6_sim2real.py run_hw6_sim2real.py
+#COPY run_hw2_mb.py run_hw2_mb.py
+#COPY run_hw3_ql.py run_hw3_ql.py
+#COPY run_hw4_gc.py run_hw4_gc.py
+#COPY run_hw5_expl.py run_hw5_expl.py
+#COPY run_hw6_sim2real.py run_hw6_sim2real.py
 
 ## Check the file were copied
 RUN ls
