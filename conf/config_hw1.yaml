@@ -22,6 +22,7 @@ alg:
   use_gpu: True
   gpu_id: 0 # The index for the GPU (the computer you use may have more than one)
   discrete: False
+  learn_policy_std: False
   ac_dim: 0 ## This will be overridden in the code
   ob_dim: 0 ## This will be overridden in the code
   network:

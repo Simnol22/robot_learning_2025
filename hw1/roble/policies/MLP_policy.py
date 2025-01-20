@@ -21,6 +21,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                  **kwargs
                  ):
         super().__init__()
+        self.env_params = kwargs
+
+        self._learn_policy_std = self.env_params['learn_policy_std']
 
         if self._discrete:
             self._logits_na = ptu.build_mlp(input_size=self._ob_dim,
@@ -84,7 +87,12 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     def get_action(self, obs: np.ndarray) -> np.ndarray:
         # TODO: 
         ## Provide the logic to produce an action from the policy
-        pass
+        #obs_tensor = torch.FloatTensor(obs).to(ptu.device)
+        obs_tensor = torch.from_numpy(obs).to(ptu.device)
+        action_distribution = self.forward(obs_tensor)
+        action = action_distribution.sample()
+        return action.cpu().detach().numpy()
+        
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -103,23 +111,12 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         else:
             if self._deterministic:
                 ##  TODO output for a deterministic policy
-                action_distribution = TODO
+                action_distribution = distributions.Normal(self._mean_net(observation), torch.zeros_like(self._std))
             else:
                 
                 ##  TODO output for a stochastic policy
-                action_distribution = TODO
+                action_distribution = distributions.Normal(self._mean_net(observation), torch.exp(self._std))
         return action_distribution
-    ##################################
-
-    def save(self, filepath):
-        torch.save(self.state_dict(), filepath)
-
-    ##################################
-
-    # update/train this policy
-    def update(self, observations, actions, **kwargs):
-        # pass
-        raise NotImplementedError
 
 #####################################################
 #####################################################
@@ -137,7 +134,19 @@ class MLPPolicySL(MLPPolicy):
         ):
         
         # TODO: update the policy and return the loss
-        loss = TODO
+        self._optimizer.zero_grad()
+        obs_tensor = torch.FloatTensor(observations).to(ptu.device)
+        action_tensor = torch.FloatTensor(actions).to(ptu.device)
+
+        # Forward pass to get pred action distribution
+        pred_action_distribution = self.forward(obs_tensor)
+        
+        # Use mean for now
+        loss = self._loss(pred_action_distribution.mean, action_tensor)
+        
+        loss.backward()
+        self._optimizer.step()
+        print("Loss: ", loss.item())
         return {
             'Training Loss': ptu.to_numpy(loss),
         }
