@@ -34,12 +34,7 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
         rewards.append(rew)
         steps += 1
 
-        # If the episode ended, the corresponding terminal value is 1
-        # otherwise, it is 0
-
-        # TODO end the rollout if the rollout ended
-        # HINT: rollout can end due to done, or due to max_path_length
-        rollout_done = done or steps >= max_path_length # HINT: this is either 0 or 1
+        rollout_done = done or steps >= max_path_length
         terminals.append(rollout_done)
         infos = None
         if rollout_done:

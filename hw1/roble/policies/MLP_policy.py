@@ -85,9 +85,6 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     # query the policy with observation(s) to get selected action(s)
     def get_action(self, obs: np.ndarray) -> np.ndarray:
-        # TODO: 
-        ## Provide the logic to produce an action from the policy
-        #obs_tensor = torch.FloatTensor(obs).to(ptu.device)
         obs_tensor = torch.from_numpy(obs).to(ptu.device)
         action_distribution = self.forward(obs_tensor)
         action = action_distribution.sample()
@@ -110,12 +107,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             return action_distribution
         else:
             if self._deterministic:
-                ##  TODO output for a deterministic policy
                 action_distribution = distributions.Normal(self._mean_net(observation), torch.zeros_like(self._std))
             else:
-                
-                ##  TODO output for a stochastic policy
-                action_distribution = distributions.Normal(self._mean_net(observation), torch.exp(self._std))
+                action_distribution = distributions.Normal(self._mean_net(observation), self._std)
         return action_distribution
 
 #####################################################
@@ -133,7 +127,6 @@ class MLPPolicySL(MLPPolicy):
         adv_n=None, acs_labels_na=None, qvals=None
         ):
         
-        # TODO: update the policy and return the loss
         self._optimizer.zero_grad()
         obs_tensor = torch.FloatTensor(observations).to(ptu.device)
         action_tensor = torch.FloatTensor(actions).to(ptu.device)
