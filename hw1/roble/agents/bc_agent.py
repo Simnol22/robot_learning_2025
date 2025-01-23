@@ -28,7 +28,7 @@ class BCAgent(BaseAgent):
         
         self._idm = MLPPolicySL(
             **self.idm_params,
-            deterministic=True,
+            deterministic=False,
             nn_baseline=False,
         )
 
@@ -68,6 +68,7 @@ class BCAgent(BaseAgent):
             
             with torch.no_grad():
                 # TODO: create the input to the IDM with observations and next_observations
+                #full_input = torch.cat([observations, next_observations], dim=1)
                 full_input = np.concatenate((observations, next_observations), axis=1)
                 # TODO: query the IDM for the action (use one of the policy methods)
                 action = self._idm.get_action(full_input)

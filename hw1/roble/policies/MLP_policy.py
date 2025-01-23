@@ -85,7 +85,6 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
     # query the policy with observation(s) to get selected action(s)
     def get_action(self, obs: np.ndarray) -> np.ndarray:
-        obs = np.array(obs)
         obs_tensor = torch.FloatTensor(obs).to(ptu.device)
         with torch.no_grad():
             action_distribution = self.forward(obs_tensor)
@@ -109,7 +108,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             return action_distribution
         else:
             if self._deterministic:
-                action_distribution = distributions.Normal(self._mean_net(observation), torch.zeros_like(self._std))
+                return self._mean_net(observation)
             else:
                 action_distribution = distributions.Normal(self._mean_net(observation), self._std)
         return action_distribution
@@ -164,7 +163,7 @@ class MLPPolicySL(MLPPolicy):
         loss = self._loss(pred_action_distribution.mean, action_tensor)
         loss.backward()
         # TODO: Update the IDM model.
-        self._optimizer.zero_grad()
+        self._optimizer.step()
         return {
             'Training Loss IDM': ptu.to_numpy(loss),
         }

@@ -34,7 +34,7 @@ class BC_Trainer(object):
         results = self._rl_trainer.run_training_loop(
             n_iter=self._params['alg']['n_iter'],
             initial_expertdata=self._params['env']['expert_data'],
-            collect_policy=self._rl_trainer._agent._actor,
+            collect_policy=self._loaded_expert_policy,
             eval_policy=self._loaded_expert_policy,
             relabel_with_expert=self._params['alg']['do_dagger'],
             expert_policy=self._loaded_expert_policy,

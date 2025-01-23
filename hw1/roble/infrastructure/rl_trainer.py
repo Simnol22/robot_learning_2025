@@ -165,8 +165,7 @@ class RL_Trainer(object):
 
             if self._params['alg']['train_idm']:
                 idm_training_logs = self.train_idm()
-
-                loss_values = [log['loss'] for log in idm_training_logs]
+                loss_values = [log['Training Loss IDM'] for log in idm_training_logs if log["Training Loss IDM"] <0.1]
                 plt.figure()
                 plt.plot(loss_values, label='IDM Training Loss')
                 plt.xlabel('Training Step')
