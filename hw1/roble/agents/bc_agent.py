@@ -16,7 +16,7 @@ class BCAgent(BaseAgent):
         # actor/policy
         self._actor = MLPPolicySL(
             **kwargs,
-            deterministic=False,
+            deterministic=True,
             nn_baseline=False,
 
         )
@@ -28,7 +28,7 @@ class BCAgent(BaseAgent):
         
         self._idm = MLPPolicySL(
             **self.idm_params,
-            deterministic=False,
+            deterministic=True,
             nn_baseline=False,
         )
 
