@@ -31,6 +31,7 @@ class MLP(nn.Module):
         layers.append(output_activation)
         self.model = nn.Sequential(*layers)
         print("MLP model Succesfully created : ", self.model)
+
     def forward(self, x):
         return self.model(x)
 
