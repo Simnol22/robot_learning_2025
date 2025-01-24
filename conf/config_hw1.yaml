@@ -1,15 +1,15 @@
 env: 
-  expert_policy_file: ../../../hw1/roble/policies/experts/Walker2d.pkl
-  expert_data: ../../../hw1/roble/expert_data/expert_data_Walker2d-v2.pkl
+  expert_policy_file: ../../../hw1/roble/policies/experts/HalfCheetah.pkl
+  expert_data: ../../../hw1/roble/expert_data/expert_data_HalfCheetah-v2.pkl
   expert_unlabelled_data: ../../../hw1/roble/expert_data/unlabelled_data_HalfCheetah-v2.pkl
   exp_name: "bob"
-  env_name: Walker2d-v2 # choices are [Ant-v2, Humanoid-v2, Walker2d-v2, HalfCheetah-v2, Hopper-v2]
+  env_name: HalfCheetah-v2 # choices are [Ant-v2, Humanoid-v2, Walker2d-v2, HalfCheetah-v2, Hopper-v2]
   max_episode_length: 1000 
-  render: false
+  render: True
 alg:
   num_rollouts: 5
   train_idm: false
-  do_dagger: false
+  do_dagger: True
   num_agent_train_steps_per_iter: 1_000 # number of gradient steps for training policy (per iter in n_iter)
   num_idm_train_steps_per_iter: 10_000
   n_iter: 1
@@ -27,8 +27,11 @@ alg:
   network:
     layer_sizes: [64, 32]
     activations: ["tanh", "tanh"]
-    output_activation: "identity" 
-
+    output_activation: "identity"
+  cnn_network:
+    layer_sizes: [64, 64, 32]
+    activations: ["relu", "relu", "relu"]
+    output_activation: "identity"
 logging:
   video_log_freq: 1 # How often to generate a video to log/
   scalar_log_freq: 1 # How often to log training information and run evaluation during training.

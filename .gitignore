@@ -1,3 +1,6 @@
+log_files2/
+run_logs/
+tmp/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

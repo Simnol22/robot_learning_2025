@@ -40,6 +40,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                                       output_size=self._ac_dim,
                                       params=self._network)
             self._mean_net.to(ptu.device)
+            self._cnn_net = ptu.build_cnn(input_size=64*64*3,
+                                        output_size=self._ac_dim,
+                                        params=self._network)
 
             if self._deterministic:
                 self._optimizer = optim.Adam(
@@ -131,13 +134,13 @@ class MLPPolicySL(MLPPolicy):
         adv_n=None, acs_labels_na=None, qvals=None
         ):
         self._optimizer.zero_grad()
+
         obs_tensor = torch.FloatTensor(observations).to(ptu.device)
         action_tensor = torch.FloatTensor(actions).to(ptu.device)
 
         # Forward pass to get pred action distribution
         pred_action = self.forward(obs_tensor)
         
-        # Use mean for now
         loss = self._loss(pred_action, action_tensor)
         
         loss.backward()
@@ -150,22 +153,19 @@ class MLPPolicySL(MLPPolicy):
         self, observations, actions, next_observations,
         adv_n=None, acs_labels_na=None, qvals=None
         ):
-        
         self._optimizer.zero_grad()
-        # TODO: Create the full input to the IDM model (hint: it's not the same as the actor as it takes both obs and next_obs)
+
         obs_tensor = torch.FloatTensor(observations).to(ptu.device)
         next_obs = torch.FloatTensor(next_observations).to(ptu.device)
         action_tensor = torch.FloatTensor(actions).to(ptu.device)
-        # TODO: Transform the numpy arrays to torch tensors (for obs, next_obs and actions)
-        
-        # TODO: Create the full input to the IDM model (hint: it's not the same as the actor as it takes both obs and next_obs)
+
         full_obs = torch.cat([obs_tensor, next_obs], dim=1)
-        # TODO: Get the predicted actions from the IDM model (hint: you need to call the forward function of the IDM model)
+
         pred_action = self.forward(full_obs)
-        # TODO: Compute the loss using the MLP_policy loss function
+
         loss = self._loss(pred_action, action_tensor)
+
         loss.backward()
-        # TODO: Update the IDM model.
         self._optimizer.step()
         return {
             'Training Loss IDM': ptu.to_numpy(loss),

@@ -165,12 +165,13 @@ class RL_Trainer(object):
 
             if self._params['alg']['train_idm']:
                 idm_training_logs = self.train_idm()
-                loss_values = [log['Training Loss IDM'] for log in idm_training_logs if log["Training Loss IDM"] <0.1]
+                loss_values = [log['Training Loss IDM'] for log in idm_training_logs]
                 plt.figure()
                 plt.plot(loss_values, label='IDM Training Loss')
-                plt.xlabel('Training Step')
-                plt.ylabel('Loss')
-                plt.title('IDM Training Loss Curve')
+                plt.xlabel('Training Step', fontsize=15)
+                plt.ylabel('Loss', fontsize=15)
+                plt.yscale('log')  # Set the y-axis to logarithmic scale
+                plt.title('IDM Training Loss Curve', fontsize=15)
                 plt.legend()
                 plt.grid(True)
                 plt.savefig(self._params['logging']['logdir'] + '/idm_training_loss.png')

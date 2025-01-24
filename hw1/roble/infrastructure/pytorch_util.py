@@ -34,6 +34,27 @@ class MLP(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+    
+class CNN(nn.Module):
+    def __init__(self, input_size, output_size, n_layers, activations, output_activation):
+        super(CNN, self).__init__()
+        layers = []
+        in_dim = input_size
+
+        # Add hidden layers
+        for size, activation in zip(n_layers, activations):
+            layers.append(nn.Conv2d(in_dim, size, kernel_size=3, stride=1, padding=1))
+            layers.append(_str_to_activation[activation])
+            in_dim = size
+        
+        # Add output layer
+        layers.append(nn.Linear(in_dim, output_size))
+        layers.append(output_activation)
+        self.model = nn.Sequential(*layers)
+        print("CNN model Succesfully created : ", self.model)
+
+    def forward(self, x):
+        return self.model(x)
 
 def build_mlp(
         input_size: int,
@@ -62,6 +83,34 @@ def build_mlp(
         output_activation = _str_to_activation[params["output_activation"]]
 
     return MLP(input_size, output_size, params["layer_sizes"], params["activations"], output_activation)
+
+def build_cnn(
+        input_size: int,
+        output_size: int,
+        **kwargs
+    ):
+    """
+    Builds a convolutional neural network
+
+    arguments:
+    n_layers: number of hidden layers
+    size: dimension of each hidden layer
+    activation: activation of each hidden layer
+    input_size: size of the input layer
+    output_size: size of the output layer
+    output_activation: activation of the output layer
+
+    returns:
+        CNN (nn.Module)
+    """
+    try:
+        params = kwargs["params"]
+    except:
+        params = kwargs
+    if isinstance(params["output_activation"], str):
+        output_activation = _str_to_activation[params["output_activation"]]
+
+    return CNN(input_size, output_size, params["layer_sizes"], params["activations"], output_activation)
 
 device = None
 
