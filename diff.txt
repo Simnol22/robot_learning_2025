@@ -1,0 +1,729 @@
+diff --git a/.gitignore b/.gitignore
+index b06eaaf..fd5178b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,3 +1,6 @@
++log_files2/
++run_logs/
++tmp/
+ # Byte-compiled / optimized / DLL files
+ __pycache__/
+ *.py[cod]
+diff --git a/command_used.md b/command_used.md
+new file mode 100644
+index 0000000..f504a4d
+--- /dev/null
++++ b/command_used.md
+@@ -0,0 +1,14 @@
++## Question 1.2
++python run_hw1_bc.py alg.n_iter=1 alg.do_dagger=false alg.eval_batch_size=5000 alg.num_agent_train_steps_per_iter=175
++
++## Question 1.3
++python run_hw1_bc.py alg.n_iter=1 alg.do_dagger=false alg.eval_batch_size=5000
++
++## IDM
++python run_hw1_bc.py alg.n_iter=1 alg.do_dagger=false alg.train_idm=true alg.eval_batch_size=5000
++
++## DAgger walker2d
++python run_hw1_bc.py alg.n_iter=10 alg.do_dagger=true alg.train_idm=false alg.eval_batch_size=5000 alg.num_agent_train_steps_per_iter=175
++
++## DAgger ant
++python run_hw1_bc.py alg.n_iter=5 alg.do_dagger=true alg.train_idm=false alg.eval_batch_size=5000 alg.num_agent_train_steps_per_iter=175
+\ No newline at end of file
+diff --git a/conf/config_hw1.yaml b/conf/config_hw1.yaml
+index e434fbe..4fa603c 100644
+--- a/conf/config_hw1.yaml
++++ b/conf/config_hw1.yaml
+@@ -1,36 +1,39 @@
+ env: 
+-  expert_policy_file: ../../../hw1/roble/policies/experts/Ant.pkl # Relative to where you're running this script from 
+-  expert_data: ../../../hw1/roble/expert_data/expert_data_Ant-v2.pkl  # Relative to where you're running this script from
+-  expert_unlabelled_data: ../../../hw1/roble/expert_data/unlabelled/unlabelled_data_Ant-v2.pkl  # Relative to where you're running this script from
++  expert_policy_file: ../../../hw1/roble/policies/experts/HalfCheetah.pkl
++  expert_data: ../../../hw1/roble/expert_data/expert_data_HalfCheetah-v2.pkl
++  expert_unlabelled_data: ../../../hw1/roble/expert_data/unlabelled_data_HalfCheetah-v2.pkl
+   exp_name: "bob"
+-  env_name: Ant-v2 # choices are [Ant-v2, Humanoid-v2, Walker2d-v2, HalfCheetah-v2, Hopper-v2]
+-  max_episode_length: 1000
+-  render: true
+-  
++  env_name: HalfCheetah-v2 # choices are [Ant-v2, Humanoid-v2, Walker2d-v2, HalfCheetah-v2, Hopper-v2]
++  max_episode_length: 1000 
++  render: True
+ alg:
+   num_rollouts: 5
+   train_idm: false
+-  do_dagger: true
++  do_dagger: True
+   num_agent_train_steps_per_iter: 1_000 # number of gradient steps for training policy (per iter in n_iter)
+   num_idm_train_steps_per_iter: 10_000
+-  n_iter: 3
++  n_iter: 1
+   batch_size: 1000 # training data collected (in the env) during each iteration
+-  eval_batch_size: 1000 # eval data collected (in the env) for logging metrics
++  eval_batch_size: 5000 # eval data collected (in the env) for logging metrics
+   train_batch_size: 100 # number of sampled data points to be used per gradient/train step
+   learning_rate: 5e-3 # THe learning rate for BC
+   max_replay_buffer_size: 1000000 ## Size of the replay buffer
+   use_gpu: True
+   gpu_id: 0 # The index for the GPU (the computer you use may have more than one)
+   discrete: False
++  learn_policy_std: False
+   ac_dim: 0 ## This will be overridden in the code
+   ob_dim: 0 ## This will be overridden in the code
+   network:
+     layer_sizes: [64, 32]
+     activations: ["tanh", "tanh"]
+-    output_activation: "identity" 
+-
++    output_activation: "identity"
++  cnn_network:
++    layer_sizes: [64, 64, 32]
++    activations: ["relu", "relu", "relu"]
++    output_activation: "identity"
+ logging:
+-  video_log_freq: 5 # How often to generate a video to log/
++  video_log_freq: 1 # How often to generate a video to log/
+   scalar_log_freq: 1 # How often to log training information and run evaluation during training.
+   save_params: true # Should the parameters given to the script be saved? (Always...)
+   logdir: "" ## This will be overridden in the code
+diff --git a/hw1/hw1.md b/hw1/hw1.md
+index ca277b4..cc2627e 100644
+--- a/hw1/hw1.md
++++ b/hw1/hw1.md
+@@ -50,7 +50,7 @@ Behavioral Cloning
+ 2.  Run behavioral cloning (BC) and report results on two tasks: the Walker2d
+     environment, where a behavioral cloning agent should achieve at
+     least 30% of the performance of the expert, and one environment of
+-    your choosing where it does not. Here is how you can run the Ant
++    your choosing where it does not. Here is how you can run the Walker2d
+     task:
+ 
+     ``` {.bash language="bash"}
+@@ -64,11 +64,11 @@ Behavioral Cloning
+ 
+     ``` {escapechar="@"}
+     env: 
+-      expert_policy_file: ../../../hw1/roble/policies/experts/Ant.pkl
+-      expert_data: ../../../hw1/roble/expert_data/labelled_data_Ant-v2.pkl
+-      expert_unlabelled_data: ../../../hw1/roble/expert_data/unlabelled_data_Ant-v2.pkl
++      expert_policy_file: ../../../hw1/roble/policies/experts/Walker2d.pkl
++      expert_data: ../../../hw1/roble/expert_data/labelled_data_Walker-v2.pkl
++      expert_unlabelled_data: ../../../hw1/roble/expert_data/unlabelled_data_HalfCheetah-v2.pkl
+       exp_name: "bob"
+-      env_name: Ant-v2 # choices are [Ant-v2, Humanoid-v2, Walker2d-v2, HalfCheetah-v2, Hopper-v2]
++      env_name: Walker2d-v2 # choices are [Ant-v2, Humanoid-v2, Walker2d-v2, HalfCheetah-v2, Hopper-v2]
+       max_episode_length: 100 
+       render: false
+       
+@@ -91,7 +91,7 @@ Behavioral Cloning
+     comparison in terms of network size, amount of data, and number of
+     training iterations. Provide these details (and any others you feel
+     are appropriate) in the table caption. Submit your log file
+-    *data/\.../log\_file.log* on Gradescope as *ant1-2.log* for your Ant
++    *data/\.../log\_file.log* on Gradescope as *walker1-2.log* for your Walker
+     run and *custom1-2.log* for the run of your choosing.
+ 
+     **Note**: What "report the mean and standard deviation" means is that
+@@ -157,7 +157,7 @@ Step-by-step guide:
+ -   Set *train\_idm* to True in the config file and make sure the
+     *expert\_unlabelled\_data* variable in the config file also points
+     to the correct path. E.g. :
+-    *../../../hw1/roble/expert\_data/unlabelled/unlabelled\_data\_Ant-v2.pkl*
++    *../../../hw1/roble/expert\_data/unlabelled/unlabelled\_data\_HalfCheetah-v2.pkl*
+ 
+ Once the IDM is correctly implemented, run the code again with the
+ config variable *train\_idm* set to True:
+@@ -176,7 +176,7 @@ that you implemented in the *train\_idm()* (see the TODO in the
+ *run\_training\_loop()* function in
+ *hw1/roble/infrastructure/rl\_trainer.py*) function, and make a bar plot
+ that compares the performance that the BC agent achieves when trained on
+-1) the original expert data and 2) the labelled data. Use the Ant-v2 and
++1) the original expert data and 2) the labelled data. Use the Walker2d-v2 and
+ HalfCheetah environments. You can modify some hyperparameters but make
+ sure to set up a fair comparison between the 2 settings.
+ 
+@@ -199,7 +199,7 @@ DAgger
+     ```
+ 
+ 2.  Run DAgger and report results on the two tasks you tested previously
+-    with behavioral cloning (i.e., Ant + another environment). Report
++    with behavioral cloning (i.e., Walker + another environment). Report
+     your results in the form of a learning curve, plotting the number of
+     DAgger iterations vs. the policy's mean return, with error bars to
+     show the standard deviation. Include the performance of the expert
+@@ -207,7 +207,7 @@ DAgger
+     horizontal lines that go across the plot). In the caption, state
+     which task you used, and any details regarding network architecture,
+     amount of data, etc. (as in the previous section). Submit the log
+-    file of your Ant run on Gradescope as *dagger\_ant2-2.log*.
++    file of your Walker run on Gradescope as *dagger\_Walker2-2.log*.
+ 
+ **Bonus**:
+ 1. Use Dagger in the OGBench task to improve the Goal Conditioned BC model.
+@@ -264,8 +264,8 @@ Turning it in {#sec:turn-it-in}
+     anchor=west, calign=first, edge path= (!u.south west) +(7.5pt,0) \|-
+     node\[fill,inner sep=1.25pt\] (.child anchor); , before typesetting
+     nodes= if n=1 insert before=\[,phantom\] , fit=band, before
+-    computing xy=l=15pt, \[submit.zip \[hw1 \[run\_logs \[q1\_bc\_ant
+-    \[log\_data.csv\] \[videos\] \] \[q2\_dagger\_ant \[log\_data.csv\]
++    computing xy=l=15pt, \[submit.zip \[hw1 \[run\_logs \[q1\_bc\_walker2d
++    \[log\_data.csv\] \[videos\] \] \[q2\_dagger\_walker2d \[log\_data.csv\]
+     \[videos\] \] \[\...\] \] \[roble \[agents \[bc\_agent.py\] \[\...\]
+     \] \[policies \[\...\] \] \[\...\] \] \[\...\] \] \[conf
+     \[config\_hw1.yaml\] \] \[Dockerfile\] \[diff.txt\] \[\...\] \]
+@@ -284,4 +284,4 @@ terminal.
+ 
+ Turn in your assignment on Gradescope. Upload the zip file with your
+ code and log files to **HW1 Code**, and upload the PDF of your report to
+-**HW1**.
++**HW1**.
+\ No newline at end of file
+diff --git a/hw1/roble/agents/bc_agent.py b/hw1/roble/agents/bc_agent.py
+index 13f5b03..6812fbd 100644
+--- a/hw1/roble/agents/bc_agent.py
++++ b/hw1/roble/agents/bc_agent.py
+@@ -16,7 +16,7 @@ class BCAgent(BaseAgent):
+         # actor/policy
+         self._actor = MLPPolicySL(
+             **kwargs,
+-            deterministic=False,
++            deterministic=True,
+             nn_baseline=False,
+ 
+         )
+@@ -68,6 +68,7 @@ class BCAgent(BaseAgent):
+             
+             with torch.no_grad():
+                 # TODO: create the input to the IDM with observations and next_observations
++                #full_input = torch.cat([observations, next_observations], dim=1)
+                 full_input = np.concatenate((observations, next_observations), axis=1)
+                 # TODO: query the IDM for the action (use one of the policy methods)
+                 action = self._idm.get_action(full_input)
+diff --git a/hw1/roble/expert_data/labelled_data_Ant-v2.pkl b/hw1/roble/expert_data/labelled_data_Ant-v2.pkl
+new file mode 100644
+index 0000000..2f8c4fe
+Binary files /dev/null and b/hw1/roble/expert_data/labelled_data_Ant-v2.pkl differ
+diff --git a/hw1/roble/expert_data/labelled_data_HalfCheetah-v2.pkl b/hw1/roble/expert_data/labelled_data_HalfCheetah-v2.pkl
+new file mode 100644
+index 0000000..4b6338a
+Binary files /dev/null and b/hw1/roble/expert_data/labelled_data_HalfCheetah-v2.pkl differ
+diff --git a/hw1/roble/infrastructure/pytorch_util.py b/hw1/roble/infrastructure/pytorch_util.py
+index 8d7d1ad..48fbbb7 100644
+--- a/hw1/roble/infrastructure/pytorch_util.py
++++ b/hw1/roble/infrastructure/pytorch_util.py
+@@ -15,9 +15,47 @@ _str_to_activation = {
+     'identity': nn.Identity(),
+ }
+ class MLP(nn.Module):
+-    def __init__(self, input_size, output_size, n_layers, size, activation, output_activation):
++    def __init__(self, input_size, output_size, n_layers, activations, output_activation):
+         super(MLP, self).__init__()
++        layers = []
++        in_dim = input_size
++
++        # Add hidden layers
++        for size, activation in zip(n_layers, activations):
++            layers.append(nn.Linear(in_dim, size))
++            layers.append(_str_to_activation[activation])
++            in_dim = size
++        
++        # Add output layer
++        layers.append(nn.Linear(in_dim, output_size))
++        layers.append(output_activation)
++        self.model = nn.Sequential(*layers)
++        print("MLP model Succesfully created : ", self.model)
++
++    def forward(self, x):
++        return self.model(x)
+     
++class CNN(nn.Module):
++    def __init__(self, input_size, output_size, n_layers, activations, output_activation):
++        super(CNN, self).__init__()
++        layers = []
++        in_dim = input_size
++
++        # Add hidden layers
++        for size, activation in zip(n_layers, activations):
++            layers.append(nn.Conv2d(in_dim, size, kernel_size=3, stride=1, padding=1))
++            layers.append(_str_to_activation[activation])
++            in_dim = size
++        
++        # Add output layer
++        layers.append(nn.Linear(in_dim, output_size))
++        layers.append(output_activation)
++        self.model = nn.Sequential(*layers)
++        print("CNN model Succesfully created : ", self.model)
++
++    def forward(self, x):
++        return self.model(x)
++
+ def build_mlp(
+         input_size: int,
+         output_size: int,
+@@ -41,13 +79,38 @@ def build_mlp(
+         params = kwargs["params"]
+     except:
+         params = kwargs
++    if isinstance(params["output_activation"], str):
++        output_activation = _str_to_activation[params["output_activation"]]
++
++    return MLP(input_size, output_size, params["layer_sizes"], params["activations"], output_activation)
++
++def build_cnn(
++        input_size: int,
++        output_size: int,
++        **kwargs
++    ):
++    """
++    Builds a convolutional neural network
++
++    arguments:
++    n_layers: number of hidden layers
++    size: dimension of each hidden layer
++    activation: activation of each hidden layer
++    input_size: size of the input layer
++    output_size: size of the output layer
++    output_activation: activation of the output layer
+ 
++    returns:
++        CNN (nn.Module)
++    """
++    try:
++        params = kwargs["params"]
++    except:
++        params = kwargs
+     if isinstance(params["output_activation"], str):
+         output_activation = _str_to_activation[params["output_activation"]]
+-    if isinstance(params["activation"], str):
+-        activation = _str_to_activation[params["activation"]]
+-    
+-    return MLP(input_size, output_size, params["n_layers"], params["size"], activation, output_activation)
++
++    return CNN(input_size, output_size, params["layer_sizes"], params["activations"], output_activation)
+ 
+ device = None
+ 
+diff --git a/hw1/roble/infrastructure/replay_buffer.py b/hw1/roble/infrastructure/replay_buffer.py
+index 7069993..cd08130 100644
+--- a/hw1/roble/infrastructure/replay_buffer.py
++++ b/hw1/roble/infrastructure/replay_buffer.py
+@@ -70,11 +70,15 @@ class ReplayBuffer(object):
+                 == self._next_obs.shape[0]
+                 == self._terminals.shape[0]
+         )
+-        ## TODO return batch_size number of random entries from each of the 5 component arrays above
+-        ## HINT 1: use np.random.permutation to sample random indices
+-        ## HINT 2: return corresponding data points from each array (i.e., not different indices from each array)
+-        ## HINT 3: look at the sample_recent_data function below
+-        raise NotImplementedError #return TODO, TODO, TODO, TODO, TODO
++
++        indices = np.random.permutation(self._obs.shape[0])[:batch_size]
++        return (
++            self._obs[indices],
++            self._acs[indices],
++            self._rews[indices],
++            self._next_obs[indices],
++            self._terminals[indices],
++        )
+ 
+     def sample_recent_data(self, batch_size=1):
+         return (
+diff --git a/hw1/roble/infrastructure/rl_trainer.py b/hw1/roble/infrastructure/rl_trainer.py
+index e3c5a4c..a9a3f06 100644
+--- a/hw1/roble/infrastructure/rl_trainer.py
++++ b/hw1/roble/infrastructure/rl_trainer.py
+@@ -1,4 +1,7 @@
+ from collections import OrderedDict
++import matplotlib
++matplotlib.use('TkAgg')
++import matplotlib.pyplot as plt
+ import numpy as np
+ import time
+ 
+@@ -6,6 +9,7 @@ import gym
+ import torch, pickle
+ from omegaconf import DictConfig, OmegaConf
+ 
++
+ from hw1.roble.infrastructure import pytorch_util as ptu
+ from hw1.roble.infrastructure.logging import Logger as TableLogger
+ from hw1.roble.infrastructure import utils
+@@ -93,7 +97,7 @@ class RL_Trainer(object):
+         except:
+             pass
+         
+-        self.add_wrappers()
++        #self.add_wrappers()
+         self._agent = agent_class(self._env, **combined_params)
+         self._log_video = False
+         self._log_metrics = True
+@@ -161,10 +165,18 @@ class RL_Trainer(object):
+ 
+             if self._params['alg']['train_idm']:
+                 idm_training_logs = self.train_idm()
+-
+-                # TODO: create a figure from the loss curve in idm_training_logs and add it to your report
+-                figure = None
+-                
++                loss_values = [log['Training Loss IDM'] for log in idm_training_logs]
++                plt.figure()
++                plt.plot(loss_values, label='IDM Training Loss')
++                plt.xlabel('Training Step', fontsize=15)
++                plt.ylabel('Loss', fontsize=15)
++                plt.yscale('log')  # Set the y-axis to logarithmic scale
++                plt.title('IDM Training Loss Curve', fontsize=15)
++                plt.legend()
++                plt.grid(True)
++                plt.savefig(self._params['logging']['logdir'] + '/idm_training_loss.png')
++                plt.close()
++            
+                 # Don't change
+                 self._agent.reset_replay_buffer()
+                 self._params['env']['expert_data'] = self._params['env']['expert_unlabelled_data']
+@@ -226,26 +238,18 @@ class RL_Trainer(object):
+             envsteps_this_batch: the sum over the numbers of environment steps in paths
+             train_video_paths: paths which also contain videos for visualization purposes
+         """
+-        # TODO decide whether to load training data or use the current policy to collect more data
+-        # HINT: depending on if it's the first iteration or not, decide whether to either
+-            # (1) load the data. In this case you can directly return as follows
+-            # ``` return loaded_paths, 0, None ```
+-
+-            # (2) collect `self.params['batch_size']` transitions
+-        # TODO collect `batch_size` samples to be used for training
+-        # HINT1: use sample_trajectories from utils
+-        # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
+-
+-        print("\nCollecting data to be used for training...")
+-
+-        paths, envsteps_this_batch = TODO
+-        # collect more rollouts with the same policy, to be saved as videos in tensorboard
+-        # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
+-
++        if itr == 0:
++            print("\nLoading expert data from... ", load_initial_expertdata)
++            with open(load_initial_expertdata, 'rb') as f:
++                loaded_paths = pickle.load(f)
++            return loaded_paths, 0, None
++        else:
++            print("\nCollecting data to be used for training...")
++            paths, envsteps_this_batch = utils.sample_trajectories(self._env, collect_policy, batch_size, self._params['env']['max_episode_length'])
++  
+         train_video_paths = None
+         if self._log_video:
+             print('\nCollecting train rollouts to be used for saving videos...')
+-            ## TODO look in utils and implement sample_n_trajectories
+             train_video_paths = utils.sample_n_trajectories(self._env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
+         return paths, envsteps_this_batch, train_video_paths
+ 
+@@ -253,15 +257,8 @@ class RL_Trainer(object):
+         print('\nTraining agent using sampled data from replay buffer...')
+         all_logs = []
+         for train_step in range(self._params['alg']['num_agent_train_steps_per_iter']):
+-            # TODO sample some data from the data buffer
+-            # HINT1: use the agent's sample function
+-            # HINT2: how much data = self._params['train_batch_size']
+-            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = TODO
+-
+-            # TODO use the sampled data to train an agent
+-            # HINT: use the agent's train function
+-            # HINT: keep the agent's training log for debugging
+-            train_log = TODO
++            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self._agent.sample(self._params['alg']['train_batch_size'])
++            train_log = self._agent.train(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
+             all_logs.append(train_log)
+         return all_logs
+ 
+@@ -269,24 +266,16 @@ class RL_Trainer(object):
+         print('\nTraining agent using sampled data from replay buffer...')
+         all_logs = []
+         for train_step in range(self._params['alg']['num_idm_train_steps_per_iter']):
+-            # TODO sample some data from the data buffer
+-            # HINT1: use the agent's sample function
+-            # HINT2: how much data = self._params['train_batch_size']
+-            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = TODO
+-
+-            # TODO use the sampled data to train an agent
+-            # HINT: use the agent's train_idm function
+-            # HINT: keep the agent's training log for debugging
+-            train_log = TODO
++            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self._agent.sample(self._params['alg']['train_batch_size'])
++            train_log = self._agent.train_idm(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
+             all_logs.append(train_log)
+         return all_logs
+ 
+     def do_relabel_with_expert(self, expert_policy, paths):
+         print("\nRelabelling collected observations with labels from an expert policy...")
+-
+-        # TODO relabel collected obsevations (from our policy) with labels from an expert policy
+-        # HINT: query the policy (using the get_action function) with paths[i]["observation"]
+-        # and replace paths[i]["action"] with these expert labels
++        for i in range(len(paths)):
++            obs = paths[i]["observation"]
++            paths[i]["action"] = expert_policy.get_action(obs)
+         return paths
+ 
+     ####################################
+@@ -300,7 +289,7 @@ class RL_Trainer(object):
+         eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(self._env, eval_policy, 
+                                                                          self._params['alg']['eval_batch_size'], 
+                                                                          self._params['env']['max_episode_length'])
+-
++        print("\nDone collecting data for eval...")
+         # save eval rollouts as videos in the video folder (for grading)
+         if self._log_video:
+             if train_video_paths is not None:
+@@ -337,10 +326,10 @@ class RL_Trainer(object):
+             logs.update(last_log)
+             logs["reward"] = [path["reward"] for path in paths]
+             logs["eval_reward"] = [path["reward"] for path in eval_paths]
+-            for key in paths[0]["infos"][0]:
+-                logs[str(key)] = [info[key] for path in paths for info in path["infos"]]
+-                # logs[str(key)] = [value[key] for value in logs[str(key)]]
+-                logs["eval_"+ str(key)] = [info[key] for path in eval_paths for info in path["infos"]]
++            #for key in paths[0]["infos"][0]:
++            #    logs[str(key)] = [info[key] for path in paths for info in path["infos"]]
++            #    # logs[str(key)] = [value[key] for value in logs[str(key)]]
++            #    logs["eval_"+ str(key)] = [info[key] for path in eval_paths for info in path["infos"]]
+             if itr == 0:
+                 self._initial_return = np.mean(train_returns)
+             logs["Initial_DataCollection_AverageReturn"] = self._initial_return
+diff --git a/hw1/roble/infrastructure/utils.py b/hw1/roble/infrastructure/utils.py
+index 46b3b43..8ed9a78 100644
+--- a/hw1/roble/infrastructure/utils.py
++++ b/hw1/roble/infrastructure/utils.py
+@@ -6,7 +6,7 @@ import time
+ 
+ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array')):
+     # initialize env for the beginning of a new rollout
+-    ob = TODO # HINT: should be the output of resetting the env
++    ob = env.reset() # HINT: should be the output of resetting the env
+     obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []
+     steps = 0
+     while True:
+@@ -24,24 +24,17 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
+                 time.sleep(env.model.opt.timestep)
+         # use the most recent ob to decide what to do
+         obs.append(ob)
+-        ac = TODO # HINT: query the policy's get_action function
+-        ac = ac[0]
++        ac = policy.get_action(ob) # HINT: query the policy's get_action function
+         acs.append(ac)
+         ob, rew, done, _ = env.step(ac)
+-        
++
+         # record result of taking that action
+         next_obs.append(ob)
+         rewards.append(rew)
+         steps += 1
+-
+-        # If the episode ended, the corresponding terminal value is 1
+-        # otherwise, it is 0
+-
+-        # TODO end the rollout if the rollout ended
+-        # HINT: rollout can end due to done, or due to max_path_length
+-        rollout_done = TODO # HINT: this is either 0 or 1
++        infos = None
++        rollout_done = done or steps >= max_path_length
+         terminals.append(rollout_done)
+-
+         if rollout_done:
+             break
+     return Path(obs, image_obs, acs, rewards, next_obs, terminals, infos)
+@@ -56,8 +49,11 @@ def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, r
+     """
+     timesteps_this_batch = 0
+     paths = []
++    
+     while timesteps_this_batch <= min_timesteps_per_batch:
+-        TODO
++        traj = sample_trajectory(env, policy, max_path_length, render, render_mode)
++        paths.append(traj)
++        timesteps_this_batch += get_pathlength(traj)
+     return paths, timesteps_this_batch
+ 
+ def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, render_mode=('rgb_array')):
+@@ -68,7 +64,8 @@ def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, ren
+         Hint1: use sample_trajectory to get each path (i.e. rollout) that goes into paths
+     """
+     paths = []
+-    TODO
++    for i in range(ntraj):
++        paths.append(sample_trajectory(env, policy, max_path_length, render, render_mode))
+     return paths
+ 
+ ############################################
+diff --git a/hw1/roble/policies/MLP_policy.py b/hw1/roble/policies/MLP_policy.py
+index a6acfbe..dc58bc9 100644
+--- a/hw1/roble/policies/MLP_policy.py
++++ b/hw1/roble/policies/MLP_policy.py
+@@ -21,6 +21,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
+                  **kwargs
+                  ):
+         super().__init__()
++        self.env_params = kwargs
++
++        self._learn_policy_std = self.env_params['learn_policy_std']
+ 
+         if self._discrete:
+             self._logits_na = ptu.build_mlp(input_size=self._ob_dim,
+@@ -37,6 +40,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
+                                       output_size=self._ac_dim,
+                                       params=self._network)
+             self._mean_net.to(ptu.device)
++            self._cnn_net = ptu.build_cnn(input_size=64*64*3,
++                                        output_size=self._ac_dim,
++                                        params=self._network)
+ 
+             if self._deterministic:
+                 self._optimizer = optim.Adam(
+@@ -82,9 +88,14 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
+ 
+     # query the policy with observation(s) to get selected action(s)
+     def get_action(self, obs: np.ndarray) -> np.ndarray:
+-        # TODO: 
+-        ## Provide the logic to produce an action from the policy
+-        pass
++        if self._deterministic:
++            if len(obs.shape) > 1:
++                observation = obs
++            else:
++                observation = obs[None, :]
++            observation = ptu.from_numpy(observation.astype(np.float32))
++            action = self.forward(observation)
++            return ptu.to_numpy(action)
+ 
+     # update/train this policy
+     def update(self, observations, actions, **kwargs):
+@@ -102,24 +113,11 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
+             return action_distribution
+         else:
+             if self._deterministic:
+-                ##  TODO output for a deterministic policy
+-                action_distribution = TODO
++                return self._mean_net(observation)
+             else:
+-                
+-                ##  TODO output for a stochastic policy
+-                action_distribution = TODO
+-        return action_distribution
+-    ##################################
+-
+-    def save(self, filepath):
+-        torch.save(self.state_dict(), filepath)
+-
+-    ##################################
+-
+-    # update/train this policy
+-    def update(self, observations, actions, **kwargs):
+-        # pass
+-        raise NotImplementedError
++                action_distribution = distributions.Normal(self._mean_net(observation), self._std)
++                action = action_distribution.rsample()
++        return action
+ 
+ #####################################################
+ #####################################################
+@@ -135,9 +133,18 @@ class MLPPolicySL(MLPPolicy):
+         self, observations, actions,
+         adv_n=None, acs_labels_na=None, qvals=None
+         ):
++        self._optimizer.zero_grad()
++
++        obs_tensor = torch.FloatTensor(observations).to(ptu.device)
++        action_tensor = torch.FloatTensor(actions).to(ptu.device)
++
++        # Forward pass to get pred action distribution
++        pred_action = self.forward(obs_tensor)
+         
+-        # TODO: update the policy and return the loss
+-        loss = TODO
++        loss = self._loss(pred_action, action_tensor)
++        
++        loss.backward()
++        self._optimizer.step()
+         return {
+             'Training Loss': ptu.to_numpy(loss),
+         }
+@@ -146,20 +153,20 @@ class MLPPolicySL(MLPPolicy):
+         self, observations, actions, next_observations,
+         adv_n=None, acs_labels_na=None, qvals=None
+         ):
+-        
+-        
+-        # TODO: Create the full input to the IDM model (hint: it's not the same as the actor as it takes both obs and next_obs)
+-        
+-        # TODO: Transform the numpy arrays to torch tensors (for obs, next_obs and actions)
+-        
+-        # TODO: Create the full input to the IDM model (hint: it's not the same as the actor as it takes both obs and next_obs)
+-        
+-        # TODO: Get the predicted actions from the IDM model (hint: you need to call the forward function of the IDM model)
+-        
+-        # TODO: Compute the loss using the MLP_policy loss function
+-        
+-        # TODO: Update the IDM model.
+-        loss = TODO
++        self._optimizer.zero_grad()
++
++        obs_tensor = torch.FloatTensor(observations).to(ptu.device)
++        next_obs = torch.FloatTensor(next_observations).to(ptu.device)
++        action_tensor = torch.FloatTensor(actions).to(ptu.device)
++
++        full_obs = torch.cat([obs_tensor, next_obs], dim=1)
++
++        pred_action = self.forward(full_obs)
++
++        loss = self._loss(pred_action, action_tensor)
++
++        loss.backward()
++        self._optimizer.step()
+         return {
+             'Training Loss IDM': ptu.to_numpy(loss),
+         }
+\ No newline at end of file
+diff --git a/run_hw1_bc_script_for_graph.py b/run_hw1_bc_script_for_graph.py
+new file mode 100644
+index 0000000..3855aa8
+--- /dev/null
++++ b/run_hw1_bc_script_for_graph.py
+@@ -0,0 +1,38 @@
++from hw1.hw1 import my_app
++import hydra, json
++from omegaconf import DictConfig, OmegaConf
++
++
++@hydra.main(config_path="conf", config_name="config_hw1")
++def my_main(cfg: DictConfig):
++    print("CONFIG : ", cfg)
++    x =20
++    step = 200
++    eval_reward = []
++    all_steps = []
++    for i in range(x):
++        print("Batch Size: ", cfg.alg.train_batch_size)
++        results = my_app(cfg)
++        eval_reward.append(results["eval_reward_Average"])
++        all_steps.append(cfg.alg.train_batch_size)
++        cfg.alg.train_batch_size += step
++    # Use results to graph eval_reward vs all_steps
++    import matplotlib.pyplot as plt
++    plt.figure()
++    plt.plot(eval_reward, label='Eval reward Average')
++    plt.xticks(range(len(all_steps)), all_steps)
++    plt.xlabel('Train batch size', fontsize=15)    
++    plt.ylabel('eval_reward_Average', fontsize=15)
++    plt.title('Reward vs Train batch size', fontsize=15)
++    plt.legend(loc='bottom left')
++    plt.grid(True)
++    plt.savefig("hopt_avg.png")
++    plt.show()
++    plt.close()
++
++    return results
++
++
++if __name__ == "__main__":
++    import os
++    results = my_main()
+\ No newline at end of file

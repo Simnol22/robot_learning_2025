@@ -9,7 +9,7 @@ import gym
 import torch, pickle
 from omegaconf import DictConfig, OmegaConf
 
-
+import ogbench
 from hw1.roble.infrastructure import pytorch_util as ptu
 from hw1.roble.infrastructure.logging import Logger as TableLogger
 from hw1.roble.infrastructure import utils
@@ -46,6 +46,25 @@ class RL_Trainer(object):
 
         # Set random seeds
         seed = self._params['logging']['random_seed']
+        self.og_bench = self._params['alg']['og_bench']
+        og_train = None
+        og_val = None
+        ob_dtype = np.uint8
+        action_dtype = np.float32
+        if self.og_bench:
+                og_train = ogbench.load_dataset(
+                "../../../ogbench/data_gen_scripts/data/visual-cube-triple-play-v0.npz",
+                ob_dtype=ob_dtype,
+                action_dtype=action_dtype,
+                compact_dataset=False,
+            )
+
+                og_val = ogbench.load_dataset(
+                "../../../ogbench/data_gen_scripts/data/data/visual-cube-triple-play-v0-val.npz",
+                ob_dtype=ob_dtype,
+                action_dtype=action_dtype,
+                compact_dataset=False,
+            )
         np.random.seed(seed)
         torch.manual_seed(seed)
         ptu.init_gpu(
@@ -103,11 +122,16 @@ class RL_Trainer(object):
         self._log_metrics = True
         
     def create_env(self, env_name, seed):
+        print("Creating env")
         import pybullet_envs
-        self._env = gym.make(env_name)
-        self._eval_env = gym.make(env_name)
-        self._env.seed(seed)
-        self._eval_env.seed(seed)
+        if self.og_bench:
+            self._env = ogbench.make_env_and_datasets("visual-cube-triple-play-v0", env_only=True)
+            self._eval_env = ogbench.make_env_and_datasets("visual-cube-triple-play-v0", env_only=True)
+        else:
+            self._env = gym.make(env_name)
+            self._eval_env = gym.make(env_name)
+            self._env.seed(seed)
+            self._eval_env.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
         
@@ -256,10 +280,16 @@ class RL_Trainer(object):
     def train_agent(self):
         print('\nTraining agent using sampled data from replay buffer...')
         all_logs = []
-        for train_step in range(self._params['alg']['num_agent_train_steps_per_iter']):
-            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self._agent.sample(self._params['alg']['train_batch_size'])
-            train_log = self._agent.train(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
-            all_logs.append(train_log)
+        if self.og_bench:
+            for train_step in range(self._params['alg']['num_agent_train_steps_per_iter']):
+                ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.getOGBatch()
+                train_log = self._agent.train(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
+                all_logs.append(train_log)   
+        else:
+            for train_step in range(self._params['alg']['num_agent_train_steps_per_iter']):
+                ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self._agent.sample(self._params['alg']['train_batch_size'])
+                train_log = self._agent.train(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
+                all_logs.append(train_log)
         return all_logs
 
     def train_idm(self):
@@ -277,7 +307,22 @@ class RL_Trainer(object):
             obs = paths[i]["observation"]
             paths[i]["action"] = expert_policy.get_action(obs)
         return paths
+    def getOGBatch(self):
+        ob_batch = []
+        ac_batch = []
+        re_batch = []
+        next_ob_batch = []
+        terminal_batch = []
 
+        for i in range(self._params['alg']['train_batch_size']):
+            ob_batch.append(self._env.reset())
+            ac = self._env.action_space.sample()
+            ac_batch.append(ac)
+            ob, reward, done, _ = self._env.step(ac)
+            re_batch.append(reward)
+            next_ob_batch.append(ob)
+            terminal_batch.append(done)
+        return ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch
     ####################################
     ####################################
 

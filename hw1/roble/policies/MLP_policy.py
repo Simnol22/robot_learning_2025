@@ -36,11 +36,12 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                                         self._learning_rate)
         else:
             self._logits_na = None
-            self._mean_net = ptu.build_mlp(input_size=self._ob_dim,
-                                      output_size=self._ac_dim,
-                                      params=self._network)
+            self._mean_net = ptu.build_cnn(input_size=64*64,
+                                        output_size=self._ac_dim,
+                                        params=self._network)
+
             self._mean_net.to(ptu.device)
-            self._cnn_net = ptu.build_cnn(input_size=64*64*3,
+            self._cnn_net = ptu.build_cnn(input_size=64*64,
                                         output_size=self._ac_dim,
                                         params=self._network)
 
